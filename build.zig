@@ -15,19 +15,16 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "mailbox",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
+    const lib_mod = b.addModule("mailbox", .{
         .root_source_file = b.path("src/mailbox.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    _ = b.addModule("mailbox", .{
-        .root_source_file = b.path("src/mailbox.zig"),
-        .target = target,
-        .optimize = optimize,
+    const lib = b.addLibrary(.{
+        .name = "mailbox",
+        .linkage = .static,
+        .root_module = lib_mod,
     });
 
     // This declares intent for the library to be installed into the standard
@@ -35,12 +32,16 @@ pub fn build(b: *std.Build) void {
     // running `zig build`).
     b.installArtifact(lib);
 
+    const lib_unit_tests_mod = b.createModule(.{
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = b.path("src/mailbox_tests.zig"),
+    });
+
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/mailbox_tests.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = lib_unit_tests_mod,
     });
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
